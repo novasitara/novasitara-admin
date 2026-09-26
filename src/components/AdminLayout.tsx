@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { Logo } from './Logo';
-import { LayoutDashboard, Briefcase, FileText, MessageSquare, LogOut, Menu, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, MessageSquare, LogOut, Menu } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, end: true },
@@ -69,14 +69,6 @@ const TopBar: React.FC = () => {
     <div className="topbar">
       <div className="topbar-title">{currentTitle}</div>
       <div className="topbar-actions">
-        <div className="topbar-search">
-          <Search size={14} />
-          <span>Search...</span>
-        </div>
-        <button className="topbar-icon-btn">
-          <Bell size={18} />
-          <span className="topbar-notification-dot"></span>
-        </button>
         <div className="avatar avatar-sm avatar-primary">{initials}</div>
       </div>
     </div>

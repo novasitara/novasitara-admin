@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Briefcase, FileText, MessageSquare, TrendingUp, Plus, Eye, Mail, Edit3 } from 'lucide-react';
+import { Briefcase, FileText, MessageSquare, TrendingUp, Plus, Eye, Mail } from 'lucide-react';
 
 interface Stats { jobs: number; applications: number; newApplications: number; enquiries: number; newEnquiries: number; }
 
@@ -40,7 +40,6 @@ export const Dashboard: React.FC = () => {
     { label: 'Add New Job', icon: Plus, link: '/jobs/new' },
     { label: 'View Applications', icon: Eye, link: '/applications' },
     { label: 'View Enquiries', icon: Mail, link: '/enquiries' },
-    { label: 'Edit Site Content', icon: Edit3, link: '/content' },
   ];
 
   return (
