@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Briefcase, FileText, MessageSquare, TrendingUp } from 'lucide-react';
+import { Briefcase, FileText, MessageSquare, TrendingUp, Plus, Eye, Mail, Edit3 } from 'lucide-react';
 
 interface Stats { jobs: number; applications: number; newApplications: number; enquiries: number; newEnquiries: number; }
 
@@ -22,58 +22,71 @@ export const Dashboard: React.FC = () => {
     });
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const cards = [
-    { label: 'Active Jobs', value: stats.jobs, sub: 'Live listings', icon: Briefcase, color: 'var(--color-primary)', link: '/jobs' },
-    { label: 'Total Applications', value: stats.applications, sub: `${stats.newApplications} new`, icon: FileText, color: '#10B981', link: '/applications' },
-    { label: 'Total Enquiries', value: stats.enquiries, sub: `${stats.newEnquiries} new`, icon: MessageSquare, color: '#F59E0B', link: '/enquiries' },
-    { label: 'Conversion', value: '—', sub: 'Track via enquiries', icon: TrendingUp, color: '#6366F1', link: '/enquiries' },
+    { label: 'Active Jobs', value: stats.jobs, sub: 'Live listings', icon: Briefcase, color: 'var(--color-primary)', bg: 'var(--color-primary-light)', link: '/jobs' },
+    { label: 'Total Applications', value: stats.applications, sub: `${stats.newApplications} new`, icon: FileText, color: '#10B981', bg: '#ECFDF5', link: '/applications' },
+    { label: 'Total Enquiries', value: stats.enquiries, sub: `${stats.newEnquiries} new`, icon: MessageSquare, color: '#F59E0B', bg: '#FFFBEB', link: '/enquiries' },
+    { label: 'Conversion', value: '—', sub: 'Track via enquiries', icon: TrendingUp, color: '#6366F1', bg: '#EEF2FF', link: '/enquiries' },
   ];
 
   const quickActions = [
-    { label: '+ Add New Job', link: '/jobs/new' },
-    { label: 'View New Applications', link: '/applications' },
-    { label: 'View New Enquiries', link: '/enquiries' },
-    { label: 'Edit Site Content', link: '/content' },
+    { label: 'Add New Job', icon: Plus, link: '/jobs/new' },
+    { label: 'View Applications', icon: Eye, link: '/applications' },
+    { label: 'View Enquiries', icon: Mail, link: '/enquiries' },
+    { label: 'Edit Site Content', icon: Edit3, link: '/content' },
   ];
 
   return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <div className="eyebrow">Overview</div>
-        <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)' }}>Dashboard</h1>
+    <div className="fade-in">
+      {/* Welcome Banner */}
+      <div className="welcome-banner">
+        <div className="welcome-title">{getGreeting()} 👋</div>
+        <div className="welcome-subtitle">Here's what's happening with your admin panel today</div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-        {cards.map(({ label, value, sub, icon: Icon, color, link }) => (
-          <Link key={label} to={link} style={{ textDecoration: 'none' }}>
-            <div
-              style={{ backgroundColor: '#fff', border: '1.5px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '1.5rem', transition: 'box-shadow 200ms, transform 200ms' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>{label}</span>
-                <div style={{ width: '34px', height: '34px', borderRadius: 'var(--radius-md)', backgroundColor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={17} color={color} />
+      {/* Stat Cards */}
+      <div className="stats-grid">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton skeleton-card" />
+          ))
+        ) : (
+          cards.map(({ label, value, sub, icon: Icon, color, bg, link }) => (
+            <Link key={label} to={link} className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-card-label">{label}</span>
+                <div className="stat-card-icon" style={{ backgroundColor: bg }}>
+                  <Icon size={18} color={color} />
                 </div>
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-heading)', letterSpacing: '-0.03em', lineHeight: 1 }}>{loading ? '—' : value}</div>
-              <div style={{ fontSize: '0.775rem', color: 'var(--color-text-muted)', marginTop: '0.35rem' }}>{sub}</div>
-            </div>
-          </Link>
-        ))}
+              <div className="stat-card-value">{value}</div>
+              <div className="stat-card-sub">{sub}</div>
+            </Link>
+          ))
+        )}
       </div>
 
-      <div style={{ backgroundColor: '#fff', border: '1.5px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '1.75rem' }}>
-        <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Quick Actions</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
-          {quickActions.map(({ label, link }) => (
-            <Link key={label} to={link}
-              style={{ padding: '0.55rem 1.1rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--color-border)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-heading)', backgroundColor: 'var(--color-bg-subtle)', transition: 'border-color 150ms' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'}
-            >{label}</Link>
-          ))}
+      {/* Quick Actions */}
+      <div className="card">
+        <div className="card-body">
+          <h3 className="section-title">Quick Actions</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
+            {quickActions.map(({ label, icon: Icon, link }) => (
+              <Link key={label} to={link} className="quick-action">
+                <div className="quick-action-icon">
+                  <Icon size={15} />
+                </div>
+                {label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>

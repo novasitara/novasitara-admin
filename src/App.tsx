@@ -9,6 +9,7 @@ import { JobForm } from './pages/JobForm';
 import { Applications } from './pages/Applications';
 import { Enquiries } from './pages/Enquiries';
 import './styles/index.css';
+import './styles/components.css';
 
 const Protected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAdminAuth();

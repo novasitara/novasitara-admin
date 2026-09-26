@@ -26,43 +26,37 @@ export const Login: React.FC = () => {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '0.75rem 1rem 0.75rem 2.6rem',
-    borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)',
-    fontSize: '0.925rem', fontFamily: 'inherit', outline: 'none',
-  };
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <div style={{ width: '100%', maxWidth: '420px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">
           <Logo height={44} />
-          <p style={{ marginTop: '0.75rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Admin Panel — Sign in to continue</p>
+          <p className="login-logo-subtitle">Admin Panel — Sign in to continue</p>
         </div>
 
-        <div style={{ backgroundColor: '#fff', border: '1.5px solid var(--color-border)', borderRadius: 'var(--radius-xl)', padding: '2.5rem', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
-          <h2 style={{ fontSize: '1.35rem', marginBottom: '1.75rem' }}>Sign In</h2>
+        <div className="login-form-card">
+          <h2 className="login-title">Sign In</h2>
 
           {error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: 'var(--color-error)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+            <div className="login-error">
               <AlertCircle size={15} />{error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <form onSubmit={handleSubmit} className="login-form">
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Email Address</label>
+              <label className="label">Email Address</label>
               <div style={{ position: 'relative' }}>
-                <Mail size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@novasitara.com" style={inputStyle} />
+                <Mail size={15} className="input-icon" />
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@novasitara.com" className="input input-with-icon" />
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Password</label>
+              <label className="label">Password</label>
               <div style={{ position: 'relative' }}>
-                <Lock size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={inputStyle} />
+                <Lock size={15} className="input-icon" />
+                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="input input-with-icon" />
               </div>
             </div>
 
