@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { Logo } from './Logo';
-import { LayoutDashboard, Briefcase, FileText, MessageSquare, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, MessageSquare, LogOut, Menu, Type, Phone, Image as ImageIcon, Newspaper, Link2 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, end: true },
   { label: 'Jobs', path: '/jobs', icon: Briefcase },
   { label: 'Applications', path: '/applications', icon: FileText },
   { label: 'Enquiries', path: '/enquiries', icon: MessageSquare },
+  { label: 'Website Text', path: '/content', icon: Type },
+  { label: 'Contact Info', path: '/contact-info', icon: Phone },
+  { label: 'Images', path: '/images', icon: ImageIcon },
+  { label: 'Blogs', path: '/blogs', icon: Newspaper },
+  { label: 'Links', path: '/links', icon: Link2 },
 ];
 
 const pageTitles: Record<string, string> = {
@@ -17,6 +22,12 @@ const pageTitles: Record<string, string> = {
   '/jobs/new': 'Add New Job',
   '/applications': 'Applications',
   '/enquiries': 'Enquiries',
+  '/content': 'Website Text',
+  '/contact-info': 'Contact Info',
+  '/images': 'Images',
+  '/blogs': 'Blogs',
+  '/blogs/new': 'New Post',
+  '/links': 'Links',
 };
 
 const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
