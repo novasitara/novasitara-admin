@@ -9,9 +9,11 @@ interface Job { id: string; title: string; department: string; location: string;
 export const Jobs: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchJobs = async () => {
-    const { data } = await supabase.from('jobs').select('id,title,department,location,type,experience,is_active,created_at').order('created_at', { ascending: false });
+    const { data, error: err } = await supabase.from('jobs').select('id,title,department,location,type,experience,is_active,created_at').order('created_at', { ascending: false });
+    if (err) setError(`Could not load jobs: ${err.message}`);
     setJobs((data as Job[]) ?? []);
     setLoading(false);
   };
@@ -19,13 +21,24 @@ export const Jobs: React.FC = () => {
   useEffect(() => { fetchJobs(); }, []);
 
   const toggleActive = async (id: string, current: boolean) => {
-    await (supabase.from('jobs') as any).update({ is_active: !current }).eq('id', id);
+    setError('');
+    // .select() returns the updated row, so 0 rows (blocked by permissions) is detected instead of ignored.
+    const { data, error: err } = await (supabase.from('jobs') as any).update({ is_active: !current }).eq('id', id).select('id');
+    if (err || !data || data.length === 0) {
+      setError(`Could not change status: ${err?.message ?? 'no permission to update this job. Check that you are an approved admin.'}`);
+      return;
+    }
     setJobs(prev => prev.map(j => j.id === id ? { ...j, is_active: !current } : j));
   };
 
   const deleteJob = async (id: string) => {
     if (!confirm('Delete this job? This cannot be undone.')) return;
-    await supabase.from('jobs').delete().eq('id', id);
+    setError('');
+    const { data, error: err } = await supabase.from('jobs').delete().eq('id', id).select('id');
+    if (err || !data || data.length === 0) {
+      setError(`Could not delete job: ${err?.message ?? 'no permission to delete this job. Check that you are an approved admin.'}`);
+      return;
+    }
     setJobs(prev => prev.filter(j => j.id !== id));
   };
 
@@ -38,6 +51,8 @@ export const Jobs: React.FC = () => {
         </div>
         <Link to="/jobs/new"><Button variant="primary" leftIcon={<Plus size={15} />}>Add New Job</Button></Link>
       </div>
+
+      {error && <div className="error-alert" style={{ marginBottom: '1rem' }}>{error}</div>}
 
       <div className="card">
         {loading ? (
