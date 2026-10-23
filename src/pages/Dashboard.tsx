@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { Briefcase, FileText, MessageSquare, TrendingUp, Plus, Eye, Mail } from 'lucide-react';
 
 interface Stats { jobs: number; applications: number; newApplications: number; enquiries: number; newEnquiries: number; }
@@ -10,16 +10,10 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('applications').select('id', { count: 'exact', head: true }),
-      supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'new'),
-      supabase.from('enquiries').select('id', { count: 'exact', head: true }),
-      supabase.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'new'),
-    ]).then(([jobs, apps, newApps, enqs, newEnqs]) => {
-      setStats({ jobs: jobs.count ?? 0, applications: apps.count ?? 0, newApplications: newApps.count ?? 0, enquiries: enqs.count ?? 0, newEnquiries: newEnqs.count ?? 0 });
-      setLoading(false);
-    });
+    api<Stats>('/admin/stats')
+      .then(setStats)
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
   }, []);
 
   const getGreeting = () => {

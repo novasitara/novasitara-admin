@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { Download, ChevronDown, ChevronUp, ExternalLink, Users, Briefcase } from 'lucide-react';
+import { api, attempt } from '../lib/api';
+import { Download, ChevronDown, ChevronUp, ExternalLink, Users, Briefcase, Trash2 } from 'lucide-react';
 
 interface Application {
   id: string; job_id: string; full_name: string; email: string; phone: string;
@@ -15,25 +15,20 @@ interface JobGroup {
   applications: Application[];
 }
 
-const DownloadResume: React.FC<{ filePath: string; fileName: string | null }> = ({ filePath, fileName }) => {
-  const handleDownload = async () => {
-    const { data, error } = await supabase.storage.from('resumes').createSignedUrl(filePath, 60);
-    if (error || !data) { alert('Could not generate download link.'); return; }
-    window.open(data.signedUrl, '_blank');
-  };
-  return (
-    <button onClick={handleDownload} className="download-btn">
-      <Download size={13} /> {fileName ?? 'Resume'}
-    </button>
-  );
-};
+// The API checks the admin session cookie before sending the file.
+const DownloadResume: React.FC<{ applicationId: string; fileName: string | null }> = ({ applicationId, fileName }) => (
+  <a href={`/api/admin/applications/${applicationId}/resume`} className="download-btn">
+    <Download size={13} /> {fileName ?? 'Resume'}
+  </a>
+);
 
 const ApplicationCard: React.FC<{
   app: Application;
   expanded: boolean;
   onToggle: () => void;
   onStatusChange: (id: string, status: Application['status']) => void;
-}> = ({ app, expanded, onToggle, onStatusChange }) => {
+  onDelete: (id: string) => void;
+}> = ({ app, expanded, onToggle, onStatusChange, onDelete }) => {
   return (
     <div className="app-card">
       {/* Card Header */}
@@ -90,7 +85,7 @@ const ApplicationCard: React.FC<{
 
           {/* Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            {app.resume_file_url && <DownloadResume filePath={app.resume_file_url} fileName={app.resume_file_name} />}
+            {app.resume_file_url && <DownloadResume applicationId={app.id} fileName={app.resume_file_name} />}
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {(['new', 'reviewed', 'shortlisted', 'rejected'] as Application['status'][]).map(s => (
                 <button key={s} onClick={() => onStatusChange(app.id, s)}
@@ -99,6 +94,9 @@ const ApplicationCard: React.FC<{
                 </button>
               ))}
             </div>
+            <button onClick={() => onDelete(app.id)} className="action-btn-icon action-btn-delete">
+              <Trash2 size={12} /> Delete
+            </button>
           </div>
         </div>
       )}
@@ -112,24 +110,33 @@ export const Applications: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState('all');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    supabase.from('applications').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => {
-        const apps = (data as Application[]) ?? [];
+    api<Application[]>('/admin/applications')
+      .then(apps => {
         setItems(apps);
         // Auto-expand all job groups by default
         const jobIds = [...new Set(apps.map(a => a.job_id))];
         const expanded: Record<string, boolean> = {};
         jobIds.forEach(id => { expanded[id] = true; });
         setExpandedJobs(expanded);
-        setLoading(false);
-      });
+      })
+      .catch(e => setError(`Could not load applications: ${e.message}`))
+      .finally(() => setLoading(false));
   }, []);
 
   const updateStatus = async (id: string, status: Application['status']) => {
-    await (supabase.from('applications') as any).update({ status }).eq('id', id);
+    const err = await attempt(() => api(`/admin/applications/${id}`, { method: 'PATCH', body: { status } }));
+    if (err) { setError(err); return; }
     setItems(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('Delete this application and its CV? This cannot be undone.')) return;
+    const err = await attempt(() => api(`/admin/applications/${id}`, { method: 'DELETE' }));
+    if (err) { setError(err); return; }
+    setItems(prev => prev.filter(a => a.id !== id));
   };
 
   const toggleJob = (jobId: string) => setExpandedJobs(prev => ({ ...prev, [jobId]: !prev[jobId] }));
@@ -159,6 +166,8 @@ export const Applications: React.FC = () => {
           ))}
         </select>
       </div>
+
+      {error && <div className="error-alert" style={{ marginBottom: '1rem' }}>{error}</div>}
 
       {loading ? (
         <div className="empty-state">Loading applications...</div>
@@ -213,6 +222,7 @@ export const Applications: React.FC = () => {
                         expanded={expandedId === app.id}
                         onToggle={() => setExpandedId(expandedId === app.id ? null : app.id)}
                         onStatusChange={updateStatus}
+                        onDelete={remove}
                       />
                     ))}
                   </div>

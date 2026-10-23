@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
 import { translations } from '../lib/defaultTranslations';
 import { Plus, Trash2 } from 'lucide-react';
@@ -33,40 +33,32 @@ export const Links: React.FC = () => {
 
   const load = async (g: string) => {
     setLoading(true); setError(''); setMessage('');
-    const { data, error: err } = await db.from('site_links').select('*').eq('group_name', g).order('sort_order', { ascending: true });
-    if (err) setError(`Could not load links: ${err.message}`);
-    setRows((data ?? []).map((r: any) => ({ ...r, label_de: r.label_de ?? '' })));
+    try {
+      const data = await api<any[]>(`/admin/links?group=${g}`);
+      setRows(data.map(r => ({ ...r, label_de: r.label_de ?? '' })));
+    } catch (e) {
+      setError(`Could not load links: ${e instanceof Error ? e.message : e}`);
+      setRows([]);
+    }
     setLoading(false);
   };
   useEffect(() => { load(group); }, [group]);
 
   const update = (i: number, patch: Partial<LinkRow>) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r));
 
-  const remove = async (i: number) => {
-    const row = rows[i];
-    if (row.id) {
-      const { error: err } = await db.from('site_links').delete().eq('id', row.id);
-      if (err) { setError(err.message); return; }
-    }
-    setRows(prev => prev.filter((_, idx) => idx !== i));
-  };
+  const remove = (i: number) => setRows(prev => prev.filter((_, idx) => idx !== i));
 
   const save = async () => {
     setError(''); setMessage('');
     const bad = rows.findIndex(r => !r.label_en.trim() || !validUrl(r.url));
     if (bad >= 0) { setError(`Row ${bad + 1}: needs an English label and a URL starting with /, https://, mailto: or tel:`); return; }
     setSaving(true);
-    const payload = rows.map((r, i) => ({
-      ...(r.id ? { id: r.id } : {}),
-      group_name: group, label_en: r.label_en.trim(), label_de: r.label_de.trim() || null,
-      url: r.url.trim(), sort_order: i, is_active: r.is_active,
-    }));
-    const { error: err } = await db.from('site_links').upsert(payload.filter(p => p.id));
-    const fresh = payload.filter(p => !p.id);
-    const { error: err2 } = fresh.length ? await db.from('site_links').insert(fresh) : { error: null };
+    // The server replaces the whole group in this order.
+    const links = rows.map(r => ({ label_en: r.label_en.trim(), label_de: r.label_de.trim() || null, url: r.url.trim(), is_active: r.is_active }));
+    const err = await attempt(() => api(`/admin/links/${group}`, { method: 'PUT', body: { links } }));
     setSaving(false);
-    if (err || err2) { setError((err ?? err2).message); return; }
-    setMessage('Saved. The website shows the new links on the next page load.');
+    if (err) { setError(err); return; }
+    setMessage(rows.length ? 'Saved. The website shows the new links on the next page load.' : 'Saved. The website is back to its original links.');
     load(group);
   };
 
@@ -80,6 +72,7 @@ export const Links: React.FC = () => {
       </div>
       <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.25rem', maxWidth: '720px' }}>
         When a group has no links here, the website uses its original links. Once you add any, only the links below (that are switched on) are shown.
+        Changes, including deletions, apply when you press Save.
         Use a path like <code>/careers</code> for pages on this site, or a full address like <code>https://…</code> for external links.
       </p>
       <div className="tab-row">
@@ -117,7 +110,7 @@ export const Links: React.FC = () => {
       {error && <div className="error-alert" style={{ marginTop: '1rem' }}>{error}</div>}
       {message && <div className="success-alert" style={{ marginTop: '1rem' }}>{message}</div>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
-        <Button variant="primary" onClick={save} isLoading={saving} disabled={rows.length === 0}>Save Links</Button>
+        <Button variant="primary" onClick={save} isLoading={saving}>Save Links</Button>
       </div>
     </div>
   );

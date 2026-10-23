@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { db } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
 import { translations } from '../lib/defaultTranslations';
 import { RotateCcw } from 'lucide-react';
@@ -37,18 +37,19 @@ export const ContentText: React.FC = () => {
   const defaultFor = (path: string): Pair => ({ en: defaultsEn[path] ?? '', de: defaultsDe[path] ?? '' });
 
   useEffect(() => {
-    db.from('site_content').select('key,value').like('key', 'text.%').then(({ data, error: err }: any) => {
-      if (err) setError(`Could not load saved text: ${err.message}`);
-      const next: Record<string, Pair> = {};
-      paths.forEach(p => { next[p] = defaultFor(p); });
-      (data ?? []).forEach((row: any) => {
-        const p = String(row.key).slice(5);
-        if (next[p]) next[p] = { en: row.value?.en ?? next[p].en, de: row.value?.de ?? next[p].de };
+    api<Record<string, any>>('/admin/content')
+      .catch(e => { setError(`Could not load saved text: ${e.message}`); return {}; })
+      .then(content => {
+        const next: Record<string, Pair> = {};
+        paths.forEach(p => { next[p] = defaultFor(p); });
+        Object.entries(content).forEach(([key, value]) => {
+          const p = key.slice(5);
+          if (key.startsWith('text.') && next[p]) next[p] = { en: value?.en ?? next[p].en, de: value?.de ?? next[p].de };
+        });
+        setValues(next);
+        setSaved(next);
+        setLoading(false);
       });
-      setValues(next);
-      setSaved(next);
-      setLoading(false);
-    });
   }, []);
 
   const sectionPaths = useMemo(() => paths.filter(p => p.split('.')[0] === section), [section]);
@@ -60,22 +61,16 @@ export const ContentText: React.FC = () => {
 
   const save = async () => {
     setSaving(true); setError(''); setMessage('');
-    const upserts: { key: string; value: Pair }[] = [];
-    const removes: string[] = [];
+    const upsert: Record<string, Pair> = {};
+    const remove: string[] = [];
     sectionPaths.forEach(p => {
       const v = values[p];
       if (!v) return;
-      if (isDefault(p, v)) removes.push(`text.${p}`);
-      else upserts.push({ key: `text.${p}`, value: { en: v.en, de: v.de } });
+      if (isDefault(p, v)) remove.push(`text.${p}`);
+      else upsert[`text.${p}`] = { en: v.en, de: v.de };
     });
-    if (upserts.length) {
-      const { error: err } = await db.from('site_content').upsert(upserts, { onConflict: 'key' });
-      if (err) { setError(err.message); setSaving(false); return; }
-    }
-    if (removes.length) {
-      const { error: err } = await db.from('site_content').delete().in('key', removes);
-      if (err) { setError(err.message); setSaving(false); return; }
-    }
+    const err = await attempt(() => api('/admin/content', { method: 'PATCH', body: { upsert, remove } }));
+    if (err) { setError(err); setSaving(false); return; }
     setSaved(prev => ({ ...prev, ...Object.fromEntries(sectionPaths.map(p => [p, values[p]])) }));
     setMessage('Saved. The website shows the new text on the next page load.');
     setSaving(false);

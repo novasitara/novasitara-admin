@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
 
 const FIELDS: { key: string; label: string; placeholder: string; type?: string }[] = [
@@ -19,19 +19,18 @@ export const ContactInfo: React.FC = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    db.from('site_content').select('value').eq('key', 'company').maybeSingle().then(({ data, error: err }: any) => {
-      if (err) setError(`Could not load: ${err.message}`);
-      setForm(data?.value ?? {});
-      setLoading(false);
-    });
+    api<Record<string, any>>('/admin/content')
+      .then(content => setForm(content.company ?? {}))
+      .catch(e => setError(`Could not load: ${e.message}`))
+      .finally(() => setLoading(false));
   }, []);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true); setError(''); setMessage('');
     const value = Object.fromEntries(Object.entries(form).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]));
-    const { error: err } = await db.from('site_content').upsert({ key: 'company', value }, { onConflict: 'key' });
-    if (err) setError(err.message); else setMessage('Saved. Empty fields use the original website values.');
+    const err = await attempt(() => api('/admin/content', { method: 'PATCH', body: { upsert: { company: value } } }));
+    if (err) setError(err); else setMessage('Saved. Empty fields use the original website values.');
     setSaving(false);
   };
 

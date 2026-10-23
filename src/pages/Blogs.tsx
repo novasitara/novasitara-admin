@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { db } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
 import { Plus, Pencil, Trash2, Newspaper } from 'lucide-react';
 
@@ -12,19 +12,17 @@ export const Blogs: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    db.from('blog_posts').select('id,slug,title_en,is_published,published_at,created_at').order('created_at', { ascending: false })
-      .then(({ data, error: err }: any) => {
-        if (err) setError(`Could not load blog posts: ${err.message}`);
-        setPosts(data ?? []);
-        setLoading(false);
-      });
+    api<Post[]>('/admin/blogs')
+      .then(setPosts)
+      .catch(e => setError(`Could not load blog posts: ${e.message}`))
+      .finally(() => setLoading(false));
   }, []);
 
   const remove = async (id: string) => {
     if (!confirm('Delete this blog post? This cannot be undone.')) return;
     setError('');
-    const { data, error: err } = await db.from('blog_posts').delete().eq('id', id).select('id');
-    if (err || !data?.length) { setError(`Could not delete: ${err?.message ?? 'no permission'}`); return; }
+    const err = await attempt(() => api(`/admin/blogs/${id}`, { method: 'DELETE' }));
+    if (err) { setError(`Could not delete: ${err}`); return; }
     setPosts(prev => prev.filter(p => p.id !== id));
   };
 

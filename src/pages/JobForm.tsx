@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrayField } from '../components/ArrayField';
+import { ArrowLeft } from 'lucide-react';
 
 interface JobForm {
   id: string; title: string; location: string; type: string; experience: string;
@@ -21,23 +22,6 @@ const empty: JobForm = {
   responsibilities_de: [''], requirements_de: [''], preferred_skills_de: [''], benefits_de: [''],
 };
 
-const ArrayField: React.FC<{ label: string; items: string[]; onChange: (v: string[]) => void }> = ({ label, items, onChange }) => (
-  <div>
-    <label className="label">{label}</label>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {items.map((item, i) => (
-        <div key={i} className="array-field-row">
-          <input value={item} onChange={e => { const n = [...items]; n[i] = e.target.value; onChange(n); }} className="input" style={{ flex: 1 }} placeholder={`${label} ${i + 1}`} />
-          {items.length > 1 && <button type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))} className="array-field-remove"><X size={13} /></button>}
-        </div>
-      ))}
-      <button type="button" onClick={() => onChange([...items, ''])} className="array-field-add">
-        <Plus size={13} /> Add item
-      </button>
-    </div>
-  </div>
-);
-
 export const JobForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -49,11 +33,8 @@ export const JobForm: React.FC = () => {
 
   useEffect(() => {
     if (!isEdit) return;
-    supabase.from('jobs').select('*').eq('id', id!).single().then(({ data, error: err }) => {
-      if (err || !data) {
-        setError(`Could not load this job: ${err?.message ?? 'not found'}`);
-      } else {
-        const row: any = data;
+    api<any>(`/admin/jobs/${id}`)
+      .then(row => {
         const list = (v: unknown) => (Array.isArray(v) && v.length ? (v as string[]) : ['']);
         setForm({
           ...empty, ...row,
@@ -63,9 +44,9 @@ export const JobForm: React.FC = () => {
           responsibilities_de: list(row.responsibilities_de), requirements_de: list(row.requirements_de),
           preferred_skills_de: list(row.preferred_skills_de), benefits_de: list(row.benefits_de),
         });
-      }
-      setLoading(false);
-    });
+      })
+      .catch(e => setError(`Could not load this job: ${e.message}`))
+      .finally(() => setLoading(false));
   }, [id, isEdit]);
 
   const set = (key: keyof JobForm, val: any) => setForm(prev => ({ ...prev, [key]: val }));
@@ -84,17 +65,10 @@ export const JobForm: React.FC = () => {
       responsibilities_de: clean(form.responsibilities_de), requirements_de: clean(form.requirements_de),
       preferred_skills_de: clean(form.preferred_skills_de), benefits_de: clean(form.benefits_de),
     };
-    if (isEdit) {
-      // .select() makes a blocked update (0 rows) visible instead of looking like success.
-      const { data, error: err } = await (supabase.from('jobs') as any).update(payload).eq('id', id).select('id');
-      if (err || !data || data.length === 0) {
-        setError(err?.message ?? 'Save was blocked: no permission to update this job. Check that you are an approved admin.');
-        setSaving(false); return;
-      }
-    } else {
-      const { error: err } = await (supabase.from('jobs') as any).insert({ id: form.id, ...payload });
-      if (err) { setError(err.code === '23505' ? 'A job with this Job ID already exists. Use a different ID.' : err.message); setSaving(false); return; }
-    }
+    const err = await attempt(() => isEdit
+      ? api(`/admin/jobs/${id}`, { method: 'PATCH', body: payload })
+      : api('/admin/jobs', { body: { id: form.id, ...payload } }));
+    if (err) { setError(err); setSaving(false); return; }
     navigate('/jobs');
   };
 

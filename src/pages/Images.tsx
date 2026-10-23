@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { uploadImage } from '../lib/upload';
 import { Button } from '../components/Button';
 
@@ -17,22 +17,22 @@ export const Images: React.FC = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    db.from('site_content').select('key,value').like('key', 'image.%').then(({ data, error: err }: any) => {
-      if (err) setError(`Could not load: ${err.message}`);
-      const next: Record<string, string> = {};
-      (data ?? []).forEach((r: any) => { next[String(r.key).slice(6)] = r.value?.url ?? ''; });
-      setUrls(next);
-      setLoading(false);
-    });
+    api<Record<string, any>>('/admin/content')
+      .then(content => {
+        const next: Record<string, string> = {};
+        Object.entries(content).forEach(([key, value]) => { if (key.startsWith('image.')) next[key.slice(6)] = value?.url ?? ''; });
+        setUrls(next);
+      })
+      .catch(e => setError(`Could not load: ${e.message}`))
+      .finally(() => setLoading(false));
   }, []);
 
   const replace = async (name: string, file: File | undefined) => {
     if (!file) return;
     setBusy(name); setError(''); setMessage('');
     try {
-      const url = await uploadImage(file, `site/${name}`);
-      const { error: err } = await db.from('site_content').upsert({ key: `image.${name}`, value: { url } }, { onConflict: 'key' });
-      if (err) throw new Error(err.message);
+      const url = await uploadImage(file);
+      await api('/admin/content', { method: 'PATCH', body: { upsert: { [`image.${name}`]: { url } } } });
       setUrls(prev => ({ ...prev, [name]: url }));
       setMessage('Image updated. It shows on the website on the next page load.');
     } catch (e) {
@@ -43,8 +43,8 @@ export const Images: React.FC = () => {
 
   const reset = async (name: string) => {
     setBusy(name); setError(''); setMessage('');
-    const { error: err } = await db.from('site_content').delete().eq('key', `image.${name}`);
-    if (err) setError(err.message);
+    const err = await attempt(() => api('/admin/content', { method: 'PATCH', body: { remove: [`image.${name}`] } }));
+    if (err) setError(err);
     else { setUrls(prev => { const n = { ...prev }; delete n[name]; return n; }); setMessage('Restored the original image.'); }
     setBusy('');
   };

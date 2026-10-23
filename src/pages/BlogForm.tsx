@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { uploadImage } from '../lib/upload';
 import { Button } from '../components/Button';
 import { ArrowLeft } from 'lucide-react';
@@ -31,15 +31,14 @@ export const BlogForm: React.FC = () => {
 
   useEffect(() => {
     if (!isEdit) return;
-    db.from('blog_posts').select('*').eq('id', id).single().then(({ data, error: err }: any) => {
-      if (err || !data) setError(`Could not load this post: ${err?.message ?? 'not found'}`);
-      else {
+    api<any>(`/admin/blogs/${id}`)
+      .then(data => {
         const next: any = { ...empty };
         Object.keys(empty).forEach(k => { if (data[k] !== null && data[k] !== undefined) next[k] = data[k]; });
         setForm(next);
-      }
-      setLoading(false);
-    });
+      })
+      .catch(e => setError(`Could not load this post: ${e.message}`))
+      .finally(() => setLoading(false));
   }, [id, isEdit]);
 
   const set = <K extends keyof Form>(key: K, val: Form[K]) => setForm(prev => ({ ...prev, [key]: val }));
@@ -49,7 +48,7 @@ export const BlogForm: React.FC = () => {
   const onImage = async (file?: File) => {
     if (!file) return;
     setUploading(true); setError('');
-    try { set('image_url', await uploadImage(file, 'blog')); }
+    try { set('image_url', await uploadImage(file)); }
     catch (e) { setError(e instanceof Error ? e.message : 'Upload failed'); }
     setUploading(false);
   };
@@ -68,13 +67,10 @@ export const BlogForm: React.FC = () => {
       is_published: form.is_published,
       published_at: form.is_published ? (form.published_at ?? new Date().toISOString()) : form.published_at,
     };
-    const res = isEdit
-      ? await db.from('blog_posts').update(payload).eq('id', id).select('id')
-      : await db.from('blog_posts').insert(payload).select('id');
-    if (res.error || !res.data?.length) {
-      setError(res.error?.code === '23505' ? 'A post with this slug already exists.' : (res.error?.message ?? 'Save was blocked: no permission. Check that you are an approved admin.'));
-      setSaving(false); return;
-    }
+    const err = await attempt(() => isEdit
+      ? api(`/admin/blogs/${id}`, { method: 'PATCH', body: payload })
+      : api('/admin/blogs', { body: payload }));
+    if (err) { setError(err); setSaving(false); return; }
     navigate('/blogs');
   };
 
