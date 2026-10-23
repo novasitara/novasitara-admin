@@ -8,6 +8,7 @@ interface Application {
   linkedin_url: string | null; cover_letter: string | null;
   resume_file_url: string | null; resume_file_name: string | null;
   status: 'new' | 'reviewed' | 'shortlisted' | 'rejected'; created_at: string;
+  job?: { title: string };
 }
 
 interface JobGroup {
@@ -190,8 +191,8 @@ export const Applications: React.FC = () => {
                       <Briefcase size={16} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-heading)', textTransform: 'capitalize' }}>
-                        {job_id.replace(/-/g, ' ')}
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-heading)' }}>
+                        {applications[0].job?.title ?? job_id}
                       </div>
                       <div style={{ fontSize: '0.775rem', color: 'var(--color-text-muted)' }}>
                         {applications.length} applicant{applications.length !== 1 ? 's' : ''}

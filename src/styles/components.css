@@ -1221,3 +1221,9 @@
 .thumb { width: 120px; height: 80px; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-bg-alt); }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 @media (max-width: 900px) { .text-row { grid-template-columns: 1fr; } .text-row-key { padding-top: 0; } }
+.link-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr auto auto; gap: 1rem; align-items: center; }
+/* Phones: the three inputs stack, the On switch and delete button share the last line. */
+@media (max-width: 760px) {
+  .link-row { grid-template-columns: 1fr auto; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border-subtle); }
+  .link-row > input.input { grid-column: 1 / -1; }
+}

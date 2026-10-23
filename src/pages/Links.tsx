@@ -58,8 +58,8 @@ export const Links: React.FC = () => {
     const err = await attempt(() => api(`/admin/links/${group}`, { method: 'PUT', body: { links } }));
     setSaving(false);
     if (err) { setError(err); return; }
+    await load(group); // reloading clears messages, so set ours afterwards
     setMessage(rows.length ? 'Saved. The website shows the new links on the next page load.' : 'Saved. The website is back to its original links.');
-    load(group);
   };
 
   return (
@@ -89,7 +89,7 @@ export const Links: React.FC = () => {
               </div>
             )}
             {rows.map((r, i) => (
-              <div key={r.id ?? `new-${i}`} className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1.4fr auto auto', alignItems: 'center' }}>
+              <div key={r.id ?? `new-${i}`} className="link-row">
                 <input className="input" placeholder="Label (English)" value={r.label_en} onChange={e => update(i, { label_en: e.target.value })} />
                 <input className="input" placeholder="Label (Deutsch)" value={r.label_de} onChange={e => update(i, { label_de: e.target.value })} />
                 <input className="input" placeholder="/page or https://…" value={r.url} onChange={e => update(i, { url: e.target.value })} />

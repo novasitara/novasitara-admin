@@ -12,6 +12,8 @@ export async function api<T = unknown>(path: string, options: { method?: string;
   });
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) {
+    // Session expired while a page was open: go back to the login screen (sign-in itself also returns 401).
+    if (res.status === 401 && !path.startsWith('/auth/')) window.location.assign('/login');
     const message = Array.isArray(data?.message) ? data.message.join('. ') : data?.message;
     throw new Error(message || `Request failed (${res.status})`);
   }
