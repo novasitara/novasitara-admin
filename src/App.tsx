@@ -8,13 +8,22 @@ import { Jobs } from './pages/Jobs';
 import { JobForm } from './pages/JobForm';
 import { Applications } from './pages/Applications';
 import { Enquiries } from './pages/Enquiries';
+import { ContentText } from './pages/ContentText';
+import { ContactInfo } from './pages/ContactInfo';
+import { Images } from './pages/Images';
+import { Blogs } from './pages/Blogs';
+import { BlogForm } from './pages/BlogForm';
+import { Links } from './pages/Links';
+import { Slides } from './pages/Slides';
+import { SlideForm } from './pages/SlideForm';
 import './styles/index.css';
 import './styles/components.css';
 
 const Protected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAdminAuth();
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontFamily: 'var(--font-sans)' }}>Loading...</div>;
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
 };
 
 export default function App() {
@@ -30,6 +39,16 @@ export default function App() {
           <Route path="jobs/:id/edit" element={<JobForm />} />
           <Route path="applications" element={<Applications />} />
           <Route path="enquiries" element={<Enquiries />} />
+          <Route path="slides" element={<Slides />} />
+          <Route path="slides/new" element={<SlideForm />} />
+          <Route path="slides/:id/edit" element={<SlideForm />} />
+          <Route path="content" element={<ContentText />} />
+          <Route path="contact-info" element={<ContactInfo />} />
+          <Route path="images" element={<Images />} />
+          <Route path="blogs" element={<Blogs />} />
+          <Route path="blogs/new" element={<BlogForm />} />
+          <Route path="blogs/:id/edit" element={<BlogForm />} />
+          <Route path="links" element={<Links />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

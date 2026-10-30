@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Briefcase } from 'lucide-react';
 
@@ -9,23 +9,27 @@ interface Job { id: string; title: string; department: string; location: string;
 export const Jobs: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const fetchJobs = async () => {
-    const { data } = await supabase.from('jobs').select('id,title,department,location,type,experience,is_active,created_at').order('created_at', { ascending: false });
-    setJobs((data as Job[]) ?? []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchJobs(); }, []);
+  useEffect(() => {
+    api<Job[]>('/admin/jobs')
+      .then(setJobs)
+      .catch(e => setError(`Could not load jobs: ${e.message}`))
+      .finally(() => setLoading(false));
+  }, []);
 
   const toggleActive = async (id: string, current: boolean) => {
-    await (supabase.from('jobs') as any).update({ is_active: !current }).eq('id', id);
+    setError('');
+    const err = await attempt(() => api(`/admin/jobs/${id}`, { method: 'PATCH', body: { is_active: !current } }));
+    if (err) { setError(`Could not change status: ${err}`); return; }
     setJobs(prev => prev.map(j => j.id === id ? { ...j, is_active: !current } : j));
   };
 
   const deleteJob = async (id: string) => {
     if (!confirm('Delete this job? This cannot be undone.')) return;
-    await supabase.from('jobs').delete().eq('id', id);
+    setError('');
+    const err = await attempt(() => api(`/admin/jobs/${id}`, { method: 'DELETE' }));
+    if (err) { setError(`Could not delete job: ${err}`); return; }
     setJobs(prev => prev.filter(j => j.id !== id));
   };
 
@@ -38,6 +42,8 @@ export const Jobs: React.FC = () => {
         </div>
         <Link to="/jobs/new"><Button variant="primary" leftIcon={<Plus size={15} />}>Add New Job</Button></Link>
       </div>
+
+      {error && <div className="error-alert" style={{ marginBottom: '1rem' }}>{error}</div>}
 
       <div className="card">
         {loading ? (

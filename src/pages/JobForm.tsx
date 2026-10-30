@@ -1,38 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrayField } from '../components/ArrayField';
+import { ArrowLeft } from 'lucide-react';
 
 interface JobForm {
   id: string; title: string; location: string; type: string; experience: string;
   department: string; posted_date: string; overview: string;
   responsibilities: string[]; requirements: string[]; preferred_skills: string[]; benefits: string[];
   is_active: boolean;
+  title_de: string; department_de: string; overview_de: string;
+  responsibilities_de: string[]; requirements_de: string[]; preferred_skills_de: string[]; benefits_de: string[];
 }
 
 const empty: JobForm = {
   id: '', title: '', location: 'India', type: 'Full Time', experience: '3+ Years',
   department: '', posted_date: 'Recent', overview: '',
   responsibilities: [''], requirements: [''], preferred_skills: [''], benefits: [''], is_active: true,
+  title_de: '', department_de: '', overview_de: '',
+  responsibilities_de: [''], requirements_de: [''], preferred_skills_de: [''], benefits_de: [''],
 };
-
-const ArrayField: React.FC<{ label: string; items: string[]; onChange: (v: string[]) => void }> = ({ label, items, onChange }) => (
-  <div>
-    <label className="label">{label}</label>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {items.map((item, i) => (
-        <div key={i} className="array-field-row">
-          <input value={item} onChange={e => { const n = [...items]; n[i] = e.target.value; onChange(n); }} className="input" style={{ flex: 1 }} placeholder={`${label} ${i + 1}`} />
-          {items.length > 1 && <button type="button" onClick={() => onChange(items.filter((_, idx) => idx !== i))} className="array-field-remove"><X size={13} /></button>}
-        </div>
-      ))}
-      <button type="button" onClick={() => onChange([...items, ''])} className="array-field-add">
-        <Plus size={13} /> Add item
-      </button>
-    </div>
-  </div>
-);
 
 export const JobForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,10 +33,20 @@ export const JobForm: React.FC = () => {
 
   useEffect(() => {
     if (!isEdit) return;
-    supabase.from('jobs').select('*').eq('id', id!).single().then(({ data }) => {
-      if (data) setForm(data as JobForm);
-      setLoading(false);
-    });
+    api<any>(`/admin/jobs/${id}`)
+      .then(row => {
+        const list = (v: unknown) => (Array.isArray(v) && v.length ? (v as string[]) : ['']);
+        setForm({
+          ...empty, ...row,
+          title_de: row.title_de ?? '', department_de: row.department_de ?? '', overview_de: row.overview_de ?? '',
+          responsibilities: list(row.responsibilities), requirements: list(row.requirements),
+          preferred_skills: list(row.preferred_skills), benefits: list(row.benefits),
+          responsibilities_de: list(row.responsibilities_de), requirements_de: list(row.requirements_de),
+          preferred_skills_de: list(row.preferred_skills_de), benefits_de: list(row.benefits_de),
+        });
+      })
+      .catch(e => setError(`Could not load this job: ${e.message}`))
+      .finally(() => setLoading(false));
   }, [id, isEdit]);
 
   const set = (key: keyof JobForm, val: any) => setForm(prev => ({ ...prev, [key]: val }));
@@ -56,11 +54,21 @@ export const JobForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true); setError('');
-    const payload = { ...form, responsibilities: form.responsibilities.filter(Boolean), requirements: form.requirements.filter(Boolean), preferred_skills: form.preferred_skills.filter(Boolean), benefits: form.benefits.filter(Boolean) };
-    const { error: err } = isEdit
-      ? await (supabase.from('jobs') as any).update(payload).eq('id', id)
-      : await (supabase.from('jobs') as any).insert(payload);
-    if (err) { setError(err.message); setSaving(false); return; }
+    const clean = (a: string[]) => a.map(x => x.trim()).filter(Boolean);
+    const orNull = (v: string) => (v.trim() ? v.trim() : null);
+    const { id: _id, created_at: _c, updated_at: _u, ...rest } = form as JobForm & { created_at?: string; updated_at?: string };
+    const payload = {
+      ...rest,
+      responsibilities: clean(form.responsibilities), requirements: clean(form.requirements),
+      preferred_skills: clean(form.preferred_skills), benefits: clean(form.benefits),
+      title_de: orNull(form.title_de), department_de: orNull(form.department_de), overview_de: orNull(form.overview_de),
+      responsibilities_de: clean(form.responsibilities_de), requirements_de: clean(form.requirements_de),
+      preferred_skills_de: clean(form.preferred_skills_de), benefits_de: clean(form.benefits_de),
+    };
+    const err = await attempt(() => isEdit
+      ? api(`/admin/jobs/${id}`, { method: 'PATCH', body: payload })
+      : api('/admin/jobs', { body: { id: form.id, ...payload } }));
+    if (err) { setError(err); setSaving(false); return; }
     navigate('/jobs');
   };
 
@@ -123,6 +131,30 @@ export const JobForm: React.FC = () => {
             <ArrayField label="Requirements" items={form.requirements} onChange={v => set('requirements', v)} />
             <ArrayField label="Preferred Skills" items={form.preferred_skills} onChange={v => set('preferred_skills', v)} />
             <ArrayField label="Benefits" items={form.benefits} onChange={v => set('benefits', v)} />
+          </div>
+        </div>
+
+        <div className="section-card">
+          <h3 className="section-title">German Translation <span className="label-hint">(optional — English is shown when a German field is empty)</span></h3>
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div className="form-grid">
+              <div>
+                <label className="label">Job Title (DE)</label>
+                <input value={form.title_de} onChange={e => set('title_de', e.target.value)} className="input" />
+              </div>
+              <div>
+                <label className="label">Department (DE)</label>
+                <input value={form.department_de} onChange={e => set('department_de', e.target.value)} className="input" />
+              </div>
+            </div>
+            <div>
+              <label className="label">Overview (DE)</label>
+              <textarea rows={4} value={form.overview_de} onChange={e => set('overview_de', e.target.value)} className="input" style={{ resize: 'vertical' }} />
+            </div>
+            <ArrayField label="Responsibilities (DE)" items={form.responsibilities_de} onChange={v => set('responsibilities_de', v)} />
+            <ArrayField label="Requirements (DE)" items={form.requirements_de} onChange={v => set('requirements_de', v)} />
+            <ArrayField label="Preferred Skills (DE)" items={form.preferred_skills_de} onChange={v => set('preferred_skills_de', v)} />
+            <ArrayField label="Benefits (DE)" items={form.benefits_de} onChange={v => set('benefits_de', v)} />
           </div>
         </div>
 

@@ -1,28 +1,33 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import { api } from '../lib/api';
+
+export interface AdminUser { email: string }
 
 export function useAdminAuth() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => listener.subscription.unsubscribe();
+    // The session lives in an httpOnly cookie; the server tells us who is signed in.
+    api<AdminUser>('/auth/me')
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error;
+  const signIn = async (email: string, password: string): Promise<Error | null> => {
+    try {
+      setUser(await api<AdminUser>('/auth/login', { body: { email, password } }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e : new Error('Sign in failed');
+    }
   };
 
-  const signOut = () => supabase.auth.signOut();
+  const signOut = async () => {
+    await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
+    setUser(null);
+  };
 
   return { user, loading, signIn, signOut };
 }

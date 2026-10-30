@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { api, attempt } from '../lib/api';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 
 interface Enquiry {
   id: string; name: string; email: string; phone: string; company: string | null;
@@ -13,15 +13,26 @@ export const Enquiries: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    supabase.from('enquiries').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setItems((data as Enquiry[]) ?? []); setLoading(false); });
+    api<Enquiry[]>('/admin/enquiries')
+      .then(setItems)
+      .catch(e => setError(`Could not load enquiries: ${e.message}`))
+      .finally(() => setLoading(false));
   }, []);
 
   const updateStatus = async (id: string, status: Enquiry['status']) => {
-    await (supabase.from('enquiries') as any).update({ status }).eq('id', id);
+    const err = await attempt(() => api(`/admin/enquiries/${id}`, { method: 'PATCH', body: { status } }));
+    if (err) { setError(err); return; }
     setItems(prev => prev.map(e => e.id === id ? { ...e, status } : e));
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('Delete this enquiry? This cannot be undone.')) return;
+    const err = await attempt(() => api(`/admin/enquiries/${id}`, { method: 'DELETE' }));
+    if (err) { setError(err); return; }
+    setItems(prev => prev.filter(e => e.id !== id));
   };
 
   const filtered = filter === 'all' ? items : items.filter(e => e.status === filter);
@@ -34,6 +45,8 @@ export const Enquiries: React.FC = () => {
           {['all', 'new', 'read', 'responded'].map(s => <option key={s} value={s}>{s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
       </div>
+
+      {error && <div className="error-alert" style={{ marginBottom: '1rem' }}>{error}</div>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {loading ? <div className="empty-state">Loading...</div>
@@ -75,6 +88,7 @@ export const Enquiries: React.FC = () => {
                           <button key={s} onClick={() => updateStatus(enq.id, s)} className={`status-btn ${enq.status === s ? 'active' : ''}`}>{s}</button>
                         ))}
                       </div>
+                      <button onClick={() => remove(enq.id)} className="action-btn-icon action-btn-delete"><Trash2 size={12} /> Delete</button>
                     </div>
                   </div>
                 )}
