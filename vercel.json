@@ -1,5 +1,8 @@
 {
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://api.novasitara.com/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://api.novasitara.com/uploads/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
+
