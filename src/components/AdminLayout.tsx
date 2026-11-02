@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { Logo } from './Logo';
-import { LayoutDashboard, Briefcase, FileText, MessageSquare, LogOut, Menu, Type, Phone, Image as ImageIcon, Newspaper, Link2, GalleryHorizontal } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, MessageSquare, LogOut, Menu, Type, Phone, Image as ImageIcon, Newspaper, Link2, GalleryHorizontal, HardDrive, BookOpen } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, end: true },
@@ -15,6 +15,8 @@ const navItems = [
   { label: 'Images', path: '/images', icon: ImageIcon },
   { label: 'Blogs', path: '/blogs', icon: Newspaper },
   { label: 'Links', path: '/links', icon: Link2 },
+  { label: 'Backups', path: '/backups', icon: HardDrive },
+  { label: 'Documentation', path: '/docs', icon: BookOpen },
 ];
 
 const pageTitles: Record<string, string> = {
@@ -31,6 +33,8 @@ const pageTitles: Record<string, string> = {
   '/blogs': 'Blogs',
   '/blogs/new': 'New Post',
   '/links': 'Links',
+  '/backups': 'Server Backups & Recovery',
+  '/docs': 'System Documentation & Handover',
 };
 
 const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {

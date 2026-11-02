@@ -16,6 +16,8 @@ import { BlogForm } from './pages/BlogForm';
 import { Links } from './pages/Links';
 import { Slides } from './pages/Slides';
 import { SlideForm } from './pages/SlideForm';
+import { Backups } from './pages/Backups';
+import { Documentation } from './pages/Documentation';
 import './styles/index.css';
 import './styles/components.css';
 
@@ -49,6 +51,8 @@ export default function App() {
           <Route path="blogs/new" element={<BlogForm />} />
           <Route path="blogs/:id/edit" element={<BlogForm />} />
           <Route path="links" element={<Links />} />
+          <Route path="backups" element={<Backups />} />
+          <Route path="docs" element={<Documentation />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
