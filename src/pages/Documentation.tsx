@@ -23,13 +23,14 @@ export const Documentation: React.FC = () => {
   return (
     <div className="fade-in" style={{ paddingBottom: '3rem' }}>
       {/* Page Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: 'var(--color-text)' }}>
-          Nova Sitara System Documentation & Handover
-        </h1>
-        <p style={{ margin: '0.25rem 0 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-          Complete operational reference, server commands, content guides, and disaster recovery procedures.
-        </p>
+      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
+        <div>
+          <div className="eyebrow">Manual & Reference</div>
+          <h1 className="page-title">Documentation</h1>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+            Complete operational reference, server commands, content guides, and disaster recovery procedures.
+          </p>
+        </div>
       </div>
 
       {/* Tabs Navigation */}

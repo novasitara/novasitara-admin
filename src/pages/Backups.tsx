@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { Button } from '../components/Button';
 import { Database, Download, Play, RefreshCw, CheckCircle2, AlertCircle, HardDrive, Terminal, ShieldCheck, Copy, Check } from 'lucide-react';
 
 interface BackupItem {
@@ -77,33 +78,38 @@ export const Backups: React.FC = () => {
 
   return (
     <div className="fade-in" style={{ paddingBottom: '3rem' }}>
-      {/* Top Banner */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+      {/* Page Header */}
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: 'var(--color-text)' }}>Server Backups & Recovery</h1>
+          <div className="eyebrow">System & Recovery</div>
+          <h1 className="page-title">Backups</h1>
           <p style={{ margin: '0.25rem 0 0', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
             Automated server snapshots of PostgreSQL database and uploaded resumes/media.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={loadBackups}
             disabled={loading}
-            className="btn btn-secondary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            leftIcon={<RefreshCw size={14} className={loading ? 'spin' : ''} />}
           >
-            <RefreshCw size={16} className={loading ? 'spin' : ''} /> Refresh
-          </button>
-          <button
+            Refresh
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
             onClick={handleRunBackup}
             disabled={creating}
-            className="btn btn-primary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            isLoading={creating}
+            leftIcon={<Play size={14} />}
           >
-            {creating ? <RefreshCw size={16} className="spin" /> : <Play size={16} />}
-            {creating ? 'Creating Snapshot...' : 'Run Backup Now'}
-          </button>
+            Run Backup Now
+          </Button>
         </div>
       </div>
 
@@ -249,23 +255,23 @@ export const Backups: React.FC = () => {
                         {b.dbFile && (
                           <a
                             href={`/api/admin/backups/download/${b.dbFile}`}
-                            className="btn btn-secondary btn-sm"
+                            className="btn btn-outline btn-sm"
                             download
                             title="Download Database Dump"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
                           >
-                            <Download size={14} /> DB
+                            <Download size={13} /> DB
                           </a>
                         )}
                         {b.filesArchive && (
                           <a
                             href={`/api/admin/backups/download/${b.filesArchive}`}
-                            className="btn btn-secondary btn-sm"
+                            className="btn btn-outline btn-sm"
                             download
                             title="Download Files Archive"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
                           >
-                            <Download size={14} /> Files
+                            <Download size={13} /> Files
                           </a>
                         )}
                       </div>
@@ -299,29 +305,33 @@ export const Backups: React.FC = () => {
                   type="button"
                   onClick={() => copyCommand(step.cmd, idx)}
                   style={{
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.35rem',
-                    color: copiedIndex === idx ? '#10B981' : 'var(--color-text-muted)',
-                    fontSize: '0.75rem'
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: '6px',
+                    border: '1px solid var(--color-border)',
+                    background: '#FFFFFF',
+                    cursor: 'pointer',
+                    color: copiedIndex === idx ? '#10B981' : 'var(--color-text)',
                   }}
                 >
-                  {copiedIndex === idx ? <Check size={14} /> : <Copy size={14} />}
-                  {copiedIndex === idx ? 'Copied' : 'Copy'}
+                  {copiedIndex === idx ? <Check size={13} /> : <Copy size={13} />}
+                  {copiedIndex === idx ? 'Copied!' : 'Copy Command'}
                 </button>
               </div>
               <pre style={{
                 margin: 0,
-                background: '#1E293B',
-                color: '#F8FAFC',
-                padding: '0.75rem',
+                background: '#0F172A',
+                color: '#38BDF8',
+                padding: '0.75rem 1rem',
                 borderRadius: '6px',
+                fontFamily: 'monospace',
                 fontSize: '0.8125rem',
                 overflowX: 'auto',
-                fontFamily: 'monospace'
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all'
               }}>
                 {step.cmd}
               </pre>

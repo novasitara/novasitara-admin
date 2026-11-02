@@ -33,8 +33,8 @@ const pageTitles: Record<string, string> = {
   '/blogs': 'Blogs',
   '/blogs/new': 'New Post',
   '/links': 'Links',
-  '/backups': 'Server Backups & Recovery',
-  '/docs': 'System Documentation & Handover',
+  '/backups': 'Backups',
+  '/docs': 'Documentation',
 };
 
 const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
