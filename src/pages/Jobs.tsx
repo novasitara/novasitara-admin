@@ -78,7 +78,7 @@ export const Jobs: React.FC = () => {
                     <td>{job.location}</td>
                     <td>{job.type}</td>
                     <td>
-                      <div className="table-title">{meta(job, 'source_type') === 'sourced' ? meta(job, 'source_company') || 'Partner source' : 'Nova Sitara'}</div>
+                      <div className="table-title">{meta(job, 'source_type') === 'sourced' ? meta(job, 'source_company') || 'Third-party source' : 'Nova Sitara'}</div>
                       <div className="table-subtitle">{meta(job, 'source_type') === 'sourced' ? `${meta(job, 'last_verified') ? `Verified ${meta(job, 'last_verified')}` : 'Verification missing'}${meta(job, 'expires_at') ? ` · hides ${meta(job, 'expires_at')}` : ''}` : 'Direct role'}</div>
                     </td>
                     <td>

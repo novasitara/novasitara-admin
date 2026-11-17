@@ -150,13 +150,13 @@ export const JobForm: React.FC = () => {
 
         <div className="section-card">
           <h3 className="section-title">Opportunity Source & Verification</h3>
-          <p className="label-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.55 }}>For partner opportunities, write an original Nova Sitara summary. Do not copy an agency advert. Keep the original source URL, reference and verification dates accurate.</p>
+          <p className="label-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.55 }}>For third-party opportunities, write an original Nova Sitara summary. Do not copy an agency advert or imply a formal partnership. Keep the original source URL, reference and verification dates accurate.</p>
           <div className="form-grid">
             <div>
               <label className="label">Source Type</label>
               <select value={form.source_type} onChange={e => set('source_type', e.target.value)} className="select" style={{ width: '100%' }}>
                 <option value="nova_sitara">Nova Sitara direct role</option>
-                <option value="sourced">Sourced partner opportunity</option>
+                <option value="sourced">Sourced third-party opportunity</option>
               </select>
             </div>
             {form.source_type === 'sourced' && <>
