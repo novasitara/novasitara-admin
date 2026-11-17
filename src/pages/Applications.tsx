@@ -79,7 +79,8 @@ const ApplicationCard: React.FC<{
           {/* Cover Letter */}
           {app.cover_letter && (
             <div style={{ marginBottom: '1rem' }}>
-              <div className="app-info-label" style={{ marginBottom: '0.4rem' }}>Cover Letter</div>
+              <div className="app-info-label" style={{ marginBottom: '0.4rem' }}>{app.cover_letter.includes('Candidate sharing consent:') ? 'Candidate Notes & Sharing Consent' : 'Cover Letter'}</div>
+              {app.cover_letter.includes('Candidate sharing consent:') && <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#047857', marginBottom: '0.45rem' }}>✓ Consent recorded — review the CV before contacting the named source partner</div>}
               <p style={{ fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--color-text-body)', backgroundColor: '#fff', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>{app.cover_letter}</p>
             </div>
           )}
