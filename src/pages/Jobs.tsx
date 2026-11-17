@@ -4,7 +4,9 @@ import { api, attempt } from '../lib/api';
 import { Button } from '../components/Button';
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Briefcase } from 'lucide-react';
 
-interface Job { id: string; title: string; department: string; location: string; type: string; experience: string; is_active: boolean; created_at: string; }
+interface Job { id: string; title: string; department: string; location: string; type: string; experience: string; benefits?: string[]; is_active: boolean; created_at: string; }
+
+const meta = (job: Job, key: string) => job.benefits?.find(v => v.startsWith(`[ns:${key}]`))?.replace(`[ns:${key}]`, '') || '';
 
 export const Jobs: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -60,7 +62,7 @@ export const Jobs: React.FC = () => {
             <table className="table">
               <thead>
                 <tr>
-                  {['Title', 'Department', 'Location', 'Type', 'Status', 'Actions'].map(h => (
+                  {['Title', 'Department', 'Location', 'Type', 'Source / Verification', 'Status', 'Actions'].map(h => (
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
@@ -75,6 +77,10 @@ export const Jobs: React.FC = () => {
                     <td>{job.department}</td>
                     <td>{job.location}</td>
                     <td>{job.type}</td>
+                    <td>
+                      <div className="table-title">{meta(job, 'source_type') === 'sourced' ? meta(job, 'source_company') || 'Partner source' : 'Nova Sitara'}</div>
+                      <div className="table-subtitle">{meta(job, 'source_type') === 'sourced' ? `${meta(job, 'last_verified') ? `Verified ${meta(job, 'last_verified')}` : 'Verification missing'}${meta(job, 'expires_at') ? ` · hides ${meta(job, 'expires_at')}` : ''}` : 'Direct role'}</div>
+                    </td>
                     <td>
                       <button onClick={() => toggleActive(job.id, job.is_active)} className={`toggle-status ${job.is_active ? 'toggle-active' : 'toggle-inactive'}`}>
                         {job.is_active ? <ToggleRight size={19} /> : <ToggleLeft size={19} />}

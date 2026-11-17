@@ -12,7 +12,22 @@ interface JobForm {
   is_active: boolean;
   title_de: string; department_de: string; overview_de: string;
   responsibilities_de: string[]; requirements_de: string[]; preferred_skills_de: string[]; benefits_de: string[];
+  source_type: 'nova_sitara' | 'sourced'; source_company: string; source_reference: string; source_url: string;
+  work_model: string; start_date: string; duration: string; workload: string; languages: string;
+  source_published: string; last_verified: string; expires_at: string;
 }
+
+const META_PATTERN = /^\[ns:([a-z_]+)\](.*)$/;
+
+const splitMetadata = (values: unknown) => {
+  const benefits: string[] = [];
+  const metadata: Record<string, string> = {};
+  (Array.isArray(values) ? values : []).forEach((value) => {
+    const match = String(value).match(META_PATTERN);
+    if (match) metadata[match[1]] = match[2].trim(); else benefits.push(String(value));
+  });
+  return { benefits, metadata };
+};
 
 const empty: JobForm = {
   id: '', title: '', location: 'India', type: 'Full Time', experience: '3+ Years',
@@ -20,6 +35,8 @@ const empty: JobForm = {
   responsibilities: [''], requirements: [''], preferred_skills: [''], benefits: [''], is_active: true,
   title_de: '', department_de: '', overview_de: '',
   responsibilities_de: [''], requirements_de: [''], preferred_skills_de: [''], benefits_de: [''],
+  source_type: 'nova_sitara', source_company: '', source_reference: '', source_url: '', work_model: 'Remote',
+  start_date: '', duration: '', workload: '', languages: 'English', source_published: '', last_verified: '2026-11-17', expires_at: '',
 };
 
 export const JobForm: React.FC = () => {
@@ -36,13 +53,18 @@ export const JobForm: React.FC = () => {
     api<any>(`/admin/jobs/${id}`)
       .then(row => {
         const list = (v: unknown) => (Array.isArray(v) && v.length ? (v as string[]) : ['']);
+        const { benefits, metadata } = splitMetadata(row.benefits);
         setForm({
           ...empty, ...row,
           title_de: row.title_de ?? '', department_de: row.department_de ?? '', overview_de: row.overview_de ?? '',
           responsibilities: list(row.responsibilities), requirements: list(row.requirements),
-          preferred_skills: list(row.preferred_skills), benefits: list(row.benefits),
+          preferred_skills: list(row.preferred_skills), benefits: benefits.length ? benefits : [''],
           responsibilities_de: list(row.responsibilities_de), requirements_de: list(row.requirements_de),
           preferred_skills_de: list(row.preferred_skills_de), benefits_de: list(row.benefits_de),
+          source_type: metadata.source_type === 'sourced' ? 'sourced' : 'nova_sitara',
+          source_company: metadata.source_company ?? '', source_reference: metadata.source_reference ?? '', source_url: metadata.source_url ?? '',
+          work_model: metadata.work_model ?? '', start_date: metadata.start_date ?? '', duration: metadata.duration ?? '', workload: metadata.workload ?? '',
+          languages: metadata.languages ?? '', source_published: metadata.source_published ?? '', last_verified: metadata.last_verified ?? '', expires_at: metadata.expires_at ?? '',
         });
       })
       .catch(e => setError(`Could not load this job: ${e.message}`))
@@ -56,11 +78,21 @@ export const JobForm: React.FC = () => {
     setSaving(true); setError('');
     const clean = (a: string[]) => a.map(x => x.trim()).filter(Boolean);
     const orNull = (v: string) => (v.trim() ? v.trim() : null);
-    const { id: _id, created_at: _c, updated_at: _u, ...rest } = form as JobForm & { created_at?: string; updated_at?: string };
+    const {
+      id: _id, created_at: _c, updated_at: _u,
+      source_type, source_company, source_reference, source_url, work_model, start_date, duration, workload,
+      languages, source_published, last_verified, expires_at, ...rest
+    } = form as JobForm & { created_at?: string; updated_at?: string };
+    const metadataEntries = [
+      `[ns:source_type]${source_type}`,
+      ...Object.entries({ source_company, source_reference, source_url, work_model, start_date, duration, workload, languages, source_published, last_verified, expires_at })
+        .filter(([, value]) => source_type === 'sourced' && value.trim())
+        .map(([key, value]) => `[ns:${key}]${value.trim()}`),
+    ];
     const payload = {
       ...rest,
       responsibilities: clean(form.responsibilities), requirements: clean(form.requirements),
-      preferred_skills: clean(form.preferred_skills), benefits: clean(form.benefits),
+      preferred_skills: clean(form.preferred_skills), benefits: [...clean(form.benefits), ...metadataEntries],
       title_de: orNull(form.title_de), department_de: orNull(form.department_de), overview_de: orNull(form.overview_de),
       responsibilities_de: clean(form.responsibilities_de), requirements_de: clean(form.requirements_de),
       preferred_skills_de: clean(form.preferred_skills_de), benefits_de: clean(form.benefits_de),
@@ -103,7 +135,7 @@ export const JobForm: React.FC = () => {
             <div>
               <label className="label">Type</label>
               <select value={form.type} onChange={e => set('type', e.target.value)} className="select" style={{ width: '100%' }}>
-                {['Full Time', 'Part Time', 'Contract', 'Remote'].map(t => <option key={t}>{t}</option>)}
+                {['Full Time', 'Part Time', 'Contract', 'Freelance / B2B'].map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
@@ -113,6 +145,33 @@ export const JobForm: React.FC = () => {
                 <option value="inactive">Inactive</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        <div className="section-card">
+          <h3 className="section-title">Opportunity Source & Verification</h3>
+          <p className="label-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.55 }}>For partner opportunities, write an original Nova Sitara summary. Do not copy an agency advert. Keep the original source URL, reference and verification dates accurate.</p>
+          <div className="form-grid">
+            <div>
+              <label className="label">Source Type</label>
+              <select value={form.source_type} onChange={e => set('source_type', e.target.value)} className="select" style={{ width: '100%' }}>
+                <option value="nova_sitara">Nova Sitara direct role</option>
+                <option value="sourced">Sourced partner opportunity</option>
+              </select>
+            </div>
+            {form.source_type === 'sourced' && <>
+              <div><label className="label">Source Company *</label><input required value={form.source_company} onChange={e => set('source_company', e.target.value)} className="input" placeholder="e.g. DSR Global" /></div>
+              <div><label className="label">Source Reference</label><input value={form.source_reference} onChange={e => set('source_reference', e.target.value)} className="input" placeholder="e.g. 57478" /></div>
+              <div style={{ gridColumn: '1 / -1' }}><label className="label">Original Source URL *</label><input required type="url" value={form.source_url} onChange={e => set('source_url', e.target.value)} className="input" placeholder="https://..." /></div>
+              <div><label className="label">Work Model</label><select value={form.work_model} onChange={e => set('work_model', e.target.value)} className="select" style={{ width: '100%' }}><option>Remote</option><option>Hybrid</option><option>On-site</option><option>Mostly remote</option></select></div>
+              <div><label className="label">Start Date</label><input value={form.start_date} onChange={e => set('start_date', e.target.value)} className="input" placeholder="January 2027" /></div>
+              <div><label className="label">Duration</label><input value={form.duration} onChange={e => set('duration', e.target.value)} className="input" placeholder="Initial 6 months" /></div>
+              <div><label className="label">Workload</label><input value={form.workload} onChange={e => set('workload', e.target.value)} className="input" placeholder="Full-time / 5 days" /></div>
+              <div><label className="label">Languages</label><input value={form.languages} onChange={e => set('languages', e.target.value)} className="input" placeholder="English, German" /></div>
+              <div><label className="label">Source Published</label><input type="date" value={form.source_published} onChange={e => set('source_published', e.target.value)} className="input" /></div>
+              <div><label className="label">Last Verified *</label><input required type="date" value={form.last_verified} onChange={e => set('last_verified', e.target.value)} className="input" /></div>
+              <div><label className="label">Automatically Hide After *</label><input required type="date" value={form.expires_at} onChange={e => set('expires_at', e.target.value)} className="input" /></div>
+            </>}
           </div>
         </div>
 
